@@ -12,4 +12,7 @@ Fase 6 – Integración GUI completa
 Fase 7 – Pruebas de seguridad (pentesting básico, pruebas unitarias)
 
 # FUNCIONAMIENTO DEL ALGORITMO DE BUSQUEDA
-<EL ALGORITMO> 
+Se usa el **índice de Jaccard** o **coeficiente de similitud** como algoritmo para hacer las conexiones entre los estudiantes. 
+
+Si quieres conocer más acerca del índice de Jaccard [click aqui] (https://www.statisticshowto.com/jaccard-index/)
+
