@@ -54,6 +54,12 @@ class ResultadoRegistro:
     token_verificacion: str  # se entrega solo aquí; nunca se guarda en crudo
 
 
+@dataclass
+class ResultadoReenvioVerificacion:
+    correo: str
+    token_verificacion: str  # se entrega solo aquí; nunca se guarda en crudo
+
+
 def _generar_token_verificacion() -> str:
     return secrets.token_urlsafe(24)
 
@@ -179,6 +185,37 @@ def verify_email(session_db: Session, correo_institucional: str, token: str) -> 
     )
 
     return True
+
+
+def resend_verification_code(
+    session_db: Session, correo_institucional: str
+) -> ResultadoReenvioVerificacion:
+    """Genera un nuevo código para una cuenta que aún no está verificada."""
+    correo_valido = validate_institutional_email(correo_institucional)
+    correo_hash = hash_lookup(correo_valido)
+    usuario = (
+        session_db.query(Usuario).filter(Usuario.correo_hash == correo_hash).first()
+    )
+
+    if usuario is None:
+        raise ValidationError("No existe una cuenta pendiente con ese correo.")
+
+    if usuario.estado_cuenta == EstadoCuenta.ACTIVO:
+        raise ValidationError("Esta cuenta ya está verificada. Puedes iniciar sesión.")
+
+    if usuario.estado_cuenta == EstadoCuenta.SUSPENDIDO:
+        raise ValidationError("Esta cuenta se encuentra suspendida.")
+
+    token_verificacion = _generar_token_verificacion()
+    usuario.token_verificacion_hash = hash_token(token_verificacion)
+    usuario.token_verificacion_expira = _utcnow_naive() + timedelta(
+        hours=settings.EMAIL_VERIFICATION_TOKEN_EXPIRATION_HOURS
+    )
+
+    return ResultadoReenvioVerificacion(
+        correo=correo_valido,
+        token_verificacion=token_verificacion,
+    )
 
 
 def send_verification_email(correo_destino: str, token: str) -> bool:

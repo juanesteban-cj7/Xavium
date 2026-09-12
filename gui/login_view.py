@@ -1,10 +1,7 @@
 """
 login_view.py
-Vista de inicio de sesión de Xavium.
-
-Por el momento solo contiene la interfaz gráfica (sin lógica de
-backend/autenticación). Los campos y botones quedan listos para
-conectarse en pasos posteriores con el módulo `auth`.
+Vista de inicio de sesión de Xavium, conectada al backend real
+mediante auth/login.py.
 """
 
 from PyQt6.QtWidgets import (
@@ -14,8 +11,19 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QHBoxLayout,
+    QMessageBox,
 )
 from PyQt6.QtCore import Qt
+
+from database.db_connection import get_session
+from security.input_validation import ValidationError
+from auth.login import login_user
+from auth.register import (
+    resend_verification_code,
+    send_verification_email,
+    verify_email,
+)
+from gui.verification_code_dialog import mostrar_codigo_desarrollo
 
 INPUT_STYLE = """
 QLineEdit {
@@ -59,13 +67,15 @@ QPushButton:hover {
 
 
 class LoginView(QWidget):
-    def __init__(self, on_ir_a_registro=None):
+    def __init__(self, on_ir_a_registro=None, on_login_exitoso=None):
         """
-        on_ir_a_registro: callback que se ejecuta cuando el usuario
-        quiere cambiar a la vista de registro.
+        on_ir_a_registro: callback para cambiar a la vista de registro.
+        on_login_exitoso: callback(usuario_id, nombre, token_sesion) que
+        se ejecuta cuando el login se completa correctamente.
         """
         super().__init__()
         self.on_ir_a_registro = on_ir_a_registro
+        self.on_login_exitoso = on_login_exitoso
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -112,6 +122,18 @@ class LoginView(QWidget):
         self.boton_login.clicked.connect(self.on_login_click)
         layout.addWidget(self.boton_login)
 
+        self.boton_reenviar_verificacion = QPushButton(
+            "Reenviar código de verificación"
+        )
+        self.boton_reenviar_verificacion.setStyleSheet(LINK_BUTTON_STYLE)
+        self.boton_reenviar_verificacion.setCursor(
+            Qt.CursorShape.PointingHandCursor
+        )
+        self.boton_reenviar_verificacion.clicked.connect(
+            self.on_reenviar_verificacion_click
+        )
+        layout.addWidget(self.boton_reenviar_verificacion)
+
         # Enlace hacia registro
         fila_registro = QHBoxLayout()
         fila_registro.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -129,12 +151,77 @@ class LoginView(QWidget):
         layout.addLayout(fila_registro)
 
     def on_login_click(self):
-        # Placeholder: aquí se conectará la lógica de autenticación (auth/login.py)
-        print(
-            f"[LOGIN] correo={self.input_correo.text()} "
-            f"password={'*' * len(self.input_password.text())}"
-        )
+        correo = self.input_correo.text()
+        password = self.input_password.text()
+
+        try:
+            with get_session() as session:
+                resultado = login_user(session, correo, password)
+        except ValidationError as error:
+            QMessageBox.warning(self, "No se pudo iniciar sesión", str(error))
+            return
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Error inesperado",
+                f"Ocurrió un error al iniciar sesión:\n{error}",
+            )
+            return
+
+        self.input_password.clear()
+
+        if self.on_login_exitoso:
+            self.on_login_exitoso(
+                resultado.usuario_id, resultado.nombre, resultado.token_sesion
+            )
 
     def _ir_a_registro(self):
         if self.on_ir_a_registro:
             self.on_ir_a_registro()
+
+    def on_reenviar_verificacion_click(self):
+        correo = self.input_correo.text()
+
+        try:
+            with get_session() as session:
+                resultado = resend_verification_code(session, correo)
+        except ValidationError as error:
+            QMessageBox.warning(self, "No se pudo reenviar el código", str(error))
+            return
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Error inesperado",
+                f"Ocurrió un error al reenviar el código:\n{error}",
+            )
+            return
+
+        enviado_por_correo = send_verification_email(
+            resultado.correo, resultado.token_verificacion
+        )
+        if enviado_por_correo:
+            QMessageBox.information(
+                self,
+                "Código reenviado",
+                f"Enviamos un nuevo código de verificación a:\n{resultado.correo}",
+            )
+        else:
+            codigo = mostrar_codigo_desarrollo(
+                self,
+                "Código reenviado",
+                "Copia este nuevo código para completar la verificación:",
+                resultado.token_verificacion,
+            )
+            if codigo is None:
+                return
+
+            try:
+                with get_session() as session:
+                    verify_email(session, resultado.correo, codigo)
+                QMessageBox.information(
+                    self,
+                    "Correo verificado",
+                    "Tu correo fue verificado. Ya puedes iniciar sesión.",
+                )
+            except ValidationError as error:
+                QMessageBox.warning(self, "Código incorrecto", str(error))

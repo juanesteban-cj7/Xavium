@@ -51,7 +51,7 @@ else:
 # Dominio institucional permitido
 # --------------------------------------------------------------
 INSTITUTIONAL_EMAIL_DOMAIN = _get_env(
-    "INSTITUTIONAL_EMAIL_DOMAIN", "@xavium.edu.co"
+    "INSTITUTIONAL_EMAIL_DOMAIN", "@javeriana.edu.co"
 ).lower()
 
 # --------------------------------------------------------------
@@ -79,6 +79,6 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = _get_env_int("SMTP_PORT", 587)
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@xavium.edu.co")
+SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@javeriana.edu.co")
 
 SMTP_CONFIGURADO = bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD)

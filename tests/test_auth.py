@@ -14,7 +14,7 @@ from database.db_connection import Base
 from database import models  # noqa: F401  (registra los modelos en Base)
 from profile.interests_catalog import seed_catalog
 from security.input_validation import ValidationError
-from auth.register import register_user, verify_email
+from auth.register import register_user, resend_verification_code, verify_email
 from auth.login import login_user
 
 
@@ -34,7 +34,7 @@ def session_db():
     session.close()
 
 
-def _registrar_usuario_valido(session_db, correo="juan.perez@xavium.edu.co"):
+def _registrar_usuario_valido(session_db, correo="juan.perez@javeriana.edu.co"):
     return register_user(
         session_db,
         nombre="Juan Pérez",
@@ -51,7 +51,7 @@ def test_registro_exitoso(session_db):
     session_db.commit()
 
     assert resultado.usuario_id is not None
-    assert resultado.correo == "juan.perez@xavium.edu.co"
+    assert resultado.correo == "juan.perez@javeriana.edu.co"
     assert resultado.token_verificacion  # se generó un token
 
 
@@ -82,7 +82,7 @@ def test_registro_rechaza_passwords_no_coinciden(session_db):
             session_db,
             nombre="Juan Pérez",
             edad=20,
-            correo_institucional="juan.perez@xavium.edu.co",
+            correo_institucional="juan.perez@javeriana.edu.co",
             facultad_nombre="Ingeniería",
             password="Segura123",
             password_confirm="OtraClave456",
@@ -90,11 +90,29 @@ def test_registro_rechaza_passwords_no_coinciden(session_db):
 
 
 def test_login_falla_si_no_ha_verificado_correo(session_db):
-    _registrar_usuario_valido(session_db)
+    resultado = _registrar_usuario_valido(session_db)
     session_db.commit()
 
     with pytest.raises(ValidationError):
-        login_user(session_db, "juan.perez@xavium.edu.co", "Segura123")
+        login_user(session_db, "juan.perez@javeriana.edu.co", "Segura123")
+
+    nuevo_codigo = resend_verification_code(
+        session_db, "juan.perez@javeriana.edu.co"
+    )
+    session_db.commit()
+
+    with pytest.raises(ValidationError):
+        verify_email(
+            session_db,
+            "juan.perez@javeriana.edu.co",
+            resultado.token_verificacion,
+        )
+
+    assert verify_email(
+        session_db,
+        "juan.perez@javeriana.edu.co",
+        nuevo_codigo.token_verificacion,
+    )
 
 
 def test_flujo_completo_registro_verificacion_login(session_db):
@@ -102,12 +120,12 @@ def test_flujo_completo_registro_verificacion_login(session_db):
     session_db.commit()
 
     verificado = verify_email(
-        session_db, "juan.perez@xavium.edu.co", resultado_registro.token_verificacion
+        session_db, "juan.perez@javeriana.edu.co", resultado_registro.token_verificacion
     )
     session_db.commit()
     assert verificado is True
 
-    resultado_login = login_user(session_db, "juan.perez@xavium.edu.co", "Segura123")
+    resultado_login = login_user(session_db, "juan.perez@javeriana.edu.co", "Segura123")
     session_db.commit()
 
     assert resultado_login.usuario_id == resultado_registro.usuario_id
@@ -117,18 +135,18 @@ def test_flujo_completo_registro_verificacion_login(session_db):
 def test_login_falla_con_password_incorrecta(session_db):
     resultado_registro = _registrar_usuario_valido(session_db)
     verify_email(
-        session_db, "juan.perez@xavium.edu.co", resultado_registro.token_verificacion
+        session_db, "juan.perez@javeriana.edu.co", resultado_registro.token_verificacion
     )
     session_db.commit()
 
     with pytest.raises(ValidationError):
-        login_user(session_db, "juan.perez@xavium.edu.co", "ClaveIncorrecta1")
+        login_user(session_db, "juan.perez@javeriana.edu.co", "ClaveIncorrecta1")
 
 
 def test_bloqueo_tras_intentos_fallidos(session_db):
     resultado_registro = _registrar_usuario_valido(session_db)
     verify_email(
-        session_db, "juan.perez@xavium.edu.co", resultado_registro.token_verificacion
+        session_db, "juan.perez@javeriana.edu.co", resultado_registro.token_verificacion
     )
     session_db.commit()
 
@@ -137,10 +155,10 @@ def test_bloqueo_tras_intentos_fallidos(session_db):
 
     for _ in range(settings.MAX_LOGIN_ATTEMPTS):
         with pytest.raises(ValidationError):
-            login_user(session_db, "juan.perez@xavium.edu.co", "ClaveIncorrecta1")
+            login_user(session_db, "juan.perez@javeriana.edu.co", "ClaveIncorrecta1")
     session_db.commit()
 
     # El siguiente intento, incluso con la contraseña correcta, debe
     # rechazarse por bloqueo temporal
     with pytest.raises(ValidationError):
-        login_user(session_db, "juan.perez@xavium.edu.co", "Segura123")
+        login_user(session_db, "juan.perez@javeriana.edu.co", "Segura123")
