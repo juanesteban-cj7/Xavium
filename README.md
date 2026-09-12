@@ -1,4 +1,4 @@
-# Xavium BETA 0.1
+# Xavium BETA 0.1.1
 
 Las dependencias estan listadas en **requirements.txt** 
 
@@ -14,5 +14,5 @@ Fase 7 – Pruebas de seguridad (pentesting básico, pruebas unitarias)
 # FUNCIONAMIENTO DEL ALGORITMO DE BUSQUEDA
 Se usa el **índice de Jaccard** o **coeficiente de similitud** como algoritmo para hacer las conexiones entre los estudiantes. 
 
-Si quieres conocer más acerca del índice de Jaccard [click aqui] (https://www.statisticshowto.com/jaccard-index/)
+Si quieres conocer más acerca del índice de Jaccard [click aqui](https://www.statisticshowto.com/jaccard-index/)
 
