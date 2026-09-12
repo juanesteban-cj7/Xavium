@@ -30,12 +30,14 @@ QPushButton:pressed {
 
 
 class HomeView(QWidget):
-    def __init__(self, on_logout=None):
+    def __init__(self, on_logout=None, on_ir_a_busqueda=None):
         """
         on_logout: callback que se ejecuta al presionar "Cerrar sesión".
+        on_ir_a_busqueda: callback para ir a la vista de búsqueda.
         """
         super().__init__()
         self.on_logout = on_logout
+        self.on_ir_a_busqueda = on_ir_a_busqueda
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -49,16 +51,19 @@ class HomeView(QWidget):
         )
         layout.addWidget(self.label_bienvenida)
 
-        subtitulo = QLabel(
-            "Tu cuenta fue verificada y la sesión quedó activa.\n"
-            "Las funciones de búsqueda y chat llegarán en las próximas fases."
-        )
+        subtitulo = QLabel("Tu cuenta fue verificada y la sesión quedó activa.")
         subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitulo.setStyleSheet("color: #D6E4F5; font-size: 13px;")
         subtitulo.setWordWrap(True)
         layout.addWidget(subtitulo)
 
         layout.addSpacing(10)
+
+        self.boton_buscar = QPushButton("Buscar estudiantes")
+        self.boton_buscar.setStyleSheet(PRIMARY_BUTTON_STYLE)
+        self.boton_buscar.setFixedWidth(220)
+        self.boton_buscar.clicked.connect(self._ir_a_busqueda)
+        layout.addWidget(self.boton_buscar, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.boton_logout = QPushButton("Cerrar sesión")
         self.boton_logout.setStyleSheet(PRIMARY_BUTTON_STYLE)
@@ -68,6 +73,10 @@ class HomeView(QWidget):
 
     def set_nombre_usuario(self, nombre: str):
         self.label_bienvenida.setText(f"¡Bienvenido, {nombre}!")
+
+    def _ir_a_busqueda(self):
+        if self.on_ir_a_busqueda:
+            self.on_ir_a_busqueda()
 
     def _cerrar_sesion(self):
         if self.on_logout:

@@ -1,69 +1,44 @@
-"""
-db_connection.py
-Conexión y manejo de sesión con la base de datos.
-
-Usa SQLAlchemy como ORM. La URL de conexión sale de config/settings.py,
-lo que permite cambiar de SQLite (desarrollo, $0 costo) a PostgreSQL
-(ej. Supabase/Render) sin tocar el resto del código.
-"""
-
-from contextlib import contextmanager
-
-from sqlalchemy import create_engine
+import os
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from config import settings
-
-# connect_args especial para SQLite: permite usarlo desde distintos hilos
-# (necesario porque la GUI de PyQt6 corre en su propio hilo/proceso)
-_connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    _connect_args = {"check_same_thread": False}
+# Configuración de la base de datos SQLite
+DB_PATH = os.path.join(os.path.dirname(__file__), "xavium.db")
+DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=_connect_args,
-    future=True,
+    DATABASE_URL, connect_args={"check_same_thread": False}
 )
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def init_db() -> None:
-    """
-    Crea todas las tablas definidas en database/models.py si no existen.
-
-    Nota: para un proyecto en producción se recomienda usar una
-    herramienta de migraciones (ej. Alembic) en vez de create_all().
-    Para esta fase (prototipo académico, $0 presupuesto) se mantiene
-    simple; el directorio database/migrations/ queda reservado para
-    cuando se incorpore Alembic más adelante.
-    """
-    # Importación tardía para evitar import circular con models.py
-    from database import models  # noqa: F401
+def init_db():
+    from database import models
 
     Base.metadata.create_all(bind=engine)
 
+    # Migración automática si falta la columna clave_cifrada
+    inspector = inspect(engine)
+    if "conversaciones" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("conversaciones")]
+        if "clave_cifrada" not in columns:
+            with engine.connect() as conn:
+                conn.execute(
+                    text("ALTER TABLE conversaciones ADD COLUMN clave_cifrada TEXT")
+                )
+                conn.commit()
 
-@contextmanager
+
 def get_session():
-    """
-    Context manager para obtener una sesión de base de datos segura:
-    hace commit si todo sale bien, rollback si hay una excepción, y
-    siempre cierra la sesión al final.
+    """Retorna una nueva sesión de la base de datos."""
+    return SessionLocal()
 
-    Uso:
-        with get_session() as session:
-            session.add(objeto)
-    """
-    session = SessionLocal()
+
+def get_db():
+    """Generador para dependencias o uso con context manager."""
+    db = SessionLocal()
     try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
+        yield db
     finally:
-        session.close()
+        db.close()

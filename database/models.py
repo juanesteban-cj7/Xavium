@@ -132,6 +132,14 @@ class Conversacion(Base):
     usuario2_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
     fecha_creacion = Column(DateTime(), default=_utcnow, nullable=False)
 
+    # Clave simétrica única de esta conversación (Fernet), a su vez
+    # cifrada con la clave maestra de la app (envelope encryption).
+    # Así, aunque se filtre la clave maestra, comprometer UNA
+    # conversación no expone directamente todas las demás sin antes
+    # descifrar cada clave individual — y permite, a futuro, rotar
+    # la clave maestra sin tener que re-cifrar todos los mensajes.
+    clave_cifrada = Column(Text, nullable=False)
+
     mensajes = relationship("Mensaje", back_populates="conversacion")
 
 

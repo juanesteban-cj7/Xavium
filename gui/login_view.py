@@ -111,6 +111,7 @@ class LoginView(QWidget):
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.input_password.setStyleSheet(INPUT_STYLE)
         self.input_password.setFixedHeight(42)
+        self.input_password.returnPressed.connect(self.on_login_click)
         layout.addWidget(self.input_password)
 
         layout.addSpacing(6)
@@ -119,6 +120,7 @@ class LoginView(QWidget):
         self.boton_login = QPushButton("Iniciar sesión")
         self.boton_login.setFixedHeight(44)
         self.boton_login.setStyleSheet(PRIMARY_BUTTON_STYLE)
+        self.boton_login.setDefault(True)
         self.boton_login.clicked.connect(self.on_login_click)
         layout.addWidget(self.boton_login)
 
@@ -157,6 +159,7 @@ class LoginView(QWidget):
         try:
             with get_session() as session:
                 resultado = login_user(session, correo, password)
+                session.commit()
         except ValidationError as error:
             QMessageBox.warning(self, "No se pudo iniciar sesión", str(error))
             return
