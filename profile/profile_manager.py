@@ -9,7 +9,6 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from database.models import Facultad, Interes, Usuario
-from security.encryption_utils import decrypt_text
 from security.input_validation import (
     ValidationError,
     validate_edad,
@@ -33,7 +32,7 @@ def _to_perfil(usuario: Usuario) -> PerfilUsuario:
         id=usuario.id,
         nombre=usuario.nombre,
         edad=usuario.edad,
-        correo=decrypt_text(usuario.correo_cifrado),
+            correo=usuario.correo,
         facultad=usuario.facultad.nombre if usuario.facultad else "",
         intereses=[interes.nombre for interes in usuario.intereses],
     )

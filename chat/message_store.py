@@ -14,7 +14,7 @@ from typing import List, Optional
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
-from database.models import Conversacion, Mensaje, Usuario
+from database.models import Conversacion, Grupo, GrupoMiembro, Mensaje, Usuario
 from chat.encryption import (
     cifrar_clave_conversacion,
     cifrar_mensaje,
@@ -101,6 +101,37 @@ def obtener_o_crear_conversacion(
     return conversacion
 
 
+def obtener_o_crear_conversacion_grupo(
+    session_db: Session, grupo_id: str, usuario_id: str
+) -> Conversacion:
+    """Devuelve la conversación única del grupo si el usuario es miembro."""
+    grupo = session_db.query(Grupo).filter(Grupo.id == grupo_id).first()
+    miembro = session_db.query(GrupoMiembro).filter(
+        GrupoMiembro.grupo_id == grupo_id,
+        GrupoMiembro.usuario_id == usuario_id,
+    ).first()
+    if grupo is None or miembro is None:
+        raise NoAutorizadoError("No tienes acceso a este grupo.")
+
+    conversacion = (
+        session_db.query(Conversacion)
+        .filter(Conversacion.grupo_id == grupo_id)
+        .first()
+    )
+    if conversacion is not None:
+        return conversacion
+
+    conversacion = Conversacion(
+        usuario1_id=grupo.creador_id,
+        usuario2_id=grupo.creador_id,
+        grupo_id=grupo_id,
+        clave_cifrada=cifrar_clave_conversacion(generar_clave_conversacion()),
+    )
+    session_db.add(conversacion)
+    session_db.flush()
+    return conversacion
+
+
 def enviar_mensaje(
     session_db: Session, conversacion_id: str, emisor_id: str, texto_plano: str
 ) -> Mensaje:
@@ -130,6 +161,50 @@ def enviar_mensaje(
     session_db.flush()
 
     return mensaje
+
+
+def enviar_mensaje_grupo(
+    session_db: Session, grupo_id: str, emisor_id: str, texto_plano: str
+) -> Mensaje:
+    conversacion = obtener_o_crear_conversacion_grupo(session_db, grupo_id, emisor_id)
+    return _enviar_mensaje_en_conversacion(session_db, conversacion, emisor_id, texto_plano)
+
+
+def _enviar_mensaje_en_conversacion(
+    session_db: Session, conversacion: Conversacion, emisor_id: str, texto_plano: str
+) -> Mensaje:
+    texto_limpio = sanitize_text(texto_plano, max_length=MAX_LONGITUD_MENSAJE)
+    if not texto_limpio:
+        raise ValidationError("El mensaje no puede estar vacío.")
+
+    clave_conversacion = descifrar_clave_conversacion(conversacion.clave_cifrada)
+    mensaje = Mensaje(
+        conversacion_id=conversacion.id,
+        emisor_id=emisor_id,
+        contenido_cifrado=cifrar_mensaje(texto_limpio, clave_conversacion),
+        leido=False,
+    )
+    session_db.add(mensaje)
+    session_db.flush()
+    return mensaje
+
+
+def obtener_mensajes_grupo(
+    session_db: Session, grupo_id: str, usuario_id: str
+) -> List[MensajeDescifrado]:
+    conversacion = obtener_o_crear_conversacion_grupo(session_db, grupo_id, usuario_id)
+    clave_conversacion = descifrar_clave_conversacion(conversacion.clave_cifrada)
+    return [
+        MensajeDescifrado(
+            id=mensaje.id,
+            emisor_id=mensaje.emisor_id,
+            contenido=descifrar_mensaje(mensaje.contenido_cifrado, clave_conversacion),
+            fecha_envio=mensaje.fecha_envio,
+            leido=mensaje.leido,
+            es_propio=mensaje.emisor_id == usuario_id,
+        )
+        for mensaje in sorted(conversacion.mensajes, key=lambda item: item.fecha_envio)
+    ]
 
 
 def obtener_mensajes(

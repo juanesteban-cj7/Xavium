@@ -15,6 +15,7 @@ Base = declarative_base()
 
 def init_db():
     from database import models
+    from security.encryption_utils import decrypt_text
 
     Base.metadata.create_all(bind=engine)
 
@@ -28,6 +29,37 @@ def init_db():
                     text("ALTER TABLE conversaciones ADD COLUMN clave_cifrada TEXT")
                 )
                 conn.commit()
+
+    inspector = inspect(engine)
+    if "usuarios" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("usuarios")]
+        if "correo" not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE usuarios ADD COLUMN correo VARCHAR(255)"))
+                usuarios = conn.execute(
+                    text("SELECT id, correo_cifrado FROM usuarios")
+                ).mappings()
+                for usuario in usuarios:
+                    correo = decrypt_text(usuario["correo_cifrado"])
+                    conn.execute(
+                        text("UPDATE usuarios SET correo = :correo WHERE id = :id"),
+                        {"correo": correo, "id": usuario["id"]},
+                    )
+                conn.execute(
+                    text("CREATE UNIQUE INDEX IF NOT EXISTS ix_usuarios_correo ON usuarios (correo)")
+                )
+
+    inspector = inspect(engine)
+    if "conversaciones" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("conversaciones")]
+        if "grupo_id" not in columns:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("ALTER TABLE conversaciones ADD COLUMN grupo_id VARCHAR(36)")
+                )
+                conn.execute(
+                    text("CREATE UNIQUE INDEX IF NOT EXISTS ix_conversaciones_grupo_id ON conversaciones (grupo_id)")
+                )
 
 
 def get_session():

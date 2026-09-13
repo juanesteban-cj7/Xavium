@@ -1,4 +1,4 @@
-# Xavium BETA 0.1.1
+# Xavium BETA 0.2
 
 Las dependencias estan listadas en **requirements.txt** 
 

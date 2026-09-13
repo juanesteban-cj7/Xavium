@@ -88,9 +88,8 @@ def register_user(
     validate_passwords_match(password, password_confirm)
 
     # 2. Verificar que el correo no esté ya registrado
-    correo_hash = hash_lookup(correo_valido)
     existente = (
-        session_db.query(Usuario).filter(Usuario.correo_hash == correo_hash).first()
+        session_db.query(Usuario).filter(Usuario.correo == correo_valido).first()
     )
     if existente is not None:
         log_event(
@@ -120,7 +119,8 @@ def register_user(
     nuevo_usuario = Usuario(
         nombre=nombre_limpio,
         edad=edad_valida,
-        correo_hash=correo_hash,
+        correo=correo_valido,
+        correo_hash=hash_lookup(correo_valido),
         correo_cifrado=encrypt_text(correo_valido),
         facultad_id=facultad.id,
         password_hash=hash_password(password),
@@ -151,9 +151,8 @@ def verify_email(session_db: Session, correo_institucional: str, token: str) -> 
     Confirma el token de verificación enviado al correo y activa la
     cuenta (estado_cuenta -> ACTIVO). Devuelve True si se verificó.
     """
-    correo_hash = hash_lookup(correo_institucional)
     usuario = (
-        session_db.query(Usuario).filter(Usuario.correo_hash == correo_hash).first()
+        session_db.query(Usuario).filter(Usuario.correo == correo_institucional.strip().lower()).first()
     )
 
     if usuario is None:
@@ -192,9 +191,8 @@ def resend_verification_code(
 ) -> ResultadoReenvioVerificacion:
     """Genera un nuevo código para una cuenta que aún no está verificada."""
     correo_valido = validate_institutional_email(correo_institucional)
-    correo_hash = hash_lookup(correo_valido)
     usuario = (
-        session_db.query(Usuario).filter(Usuario.correo_hash == correo_hash).first()
+        session_db.query(Usuario).filter(Usuario.correo == correo_valido).first()
     )
 
     if usuario is None:

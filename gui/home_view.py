@@ -1,83 +1,84 @@
-"""
-home_view.py
-Pantalla mínima que se muestra tras un login exitoso.
-
-Esta es una vista temporal/placeholder mientras se desarrollan las
-vistas reales de búsqueda (search_view.py) y chat (chat_view.py) en
-las Fases 4-6. Su propósito actual es permitir probar el flujo
-completo de login -> sesión activa -> logout.
-"""
-
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QFrame
 
-PRIMARY_BUTTON_STYLE = """
-QPushButton {
-    background-color: white;
-    color: #1E5AA8;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 8px 20px;
-}
-QPushButton:hover {
-    background-color: #E6EEF8;
-}
-QPushButton:pressed {
-    background-color: #C9DAF0;
-}
-"""
+from database.db_connection import get_session
+from chat.message_store import listar_conversaciones_usuario
+from gui.app_header import AppHeader
 
 
 class HomeView(QWidget):
-    def __init__(self, on_logout=None, on_ir_a_busqueda=None):
-        """
-        on_logout: callback que se ejecuta al presionar "Cerrar sesión".
-        on_ir_a_busqueda: callback para ir a la vista de búsqueda.
-        """
+    def __init__(self, on_logout=None, on_menu=None, on_inicio=None,
+                 on_contactos=None, on_grupos=None, on_buscar=None, on_abrir_chat=None):
         super().__init__()
-        self.on_logout = on_logout
-        self.on_ir_a_busqueda = on_ir_a_busqueda
+        self.usuario_id = None
+        self.on_abrir_chat = on_abrir_chat
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(16)
-        self.setLayout(layout)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(0)
 
-        self.label_bienvenida = QLabel("")
-        self.label_bienvenida.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label_bienvenida.setStyleSheet(
-            "color: white; font-size: 24px; font-weight: bold;"
-        )
-        layout.addWidget(self.label_bienvenida)
+        self.header = AppHeader(on_inicio=on_inicio, on_contactos=on_contactos,
+                                on_grupos=on_grupos, on_buscar=on_buscar)
+        if on_menu:
+            self.header.menu_clicked.connect(on_menu)
+        root.addWidget(self.header)
 
-        subtitulo = QLabel("Tu cuenta fue verificada y la sesión quedó activa.")
-        subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitulo.setStyleSheet("color: #D6E4F5; font-size: 13px;")
-        subtitulo.setWordWrap(True)
-        layout.addWidget(subtitulo)
+        body = QHBoxLayout()
+        body.setSpacing(0)
 
-        layout.addSpacing(10)
+        left = QFrame()
+        left.setStyleSheet("QFrame { border: 3px solid #111; border-top: none; background: white; }")
+        left.setFixedWidth(225)
+        left_lay = QVBoxLayout(left)
+        left_lay.setContentsMargins(0, 0, 0, 0)
 
-        self.boton_buscar = QPushButton("Buscar estudiantes")
-        self.boton_buscar.setStyleSheet(PRIMARY_BUTTON_STYLE)
-        self.boton_buscar.setFixedWidth(220)
-        self.boton_buscar.clicked.connect(self._ir_a_busqueda)
-        layout.addWidget(self.boton_buscar, alignment=Qt.AlignmentFlag.AlignCenter)
+        title = QLabel("chats recientes")
+        title.setStyleSheet("font-size: 17px; padding: 10px; border-bottom: 3px solid #111; color: #111;")
+        left_lay.addWidget(title)
 
-        self.boton_logout = QPushButton("Cerrar sesión")
-        self.boton_logout.setStyleSheet(PRIMARY_BUTTON_STYLE)
-        self.boton_logout.setFixedWidth(180)
-        self.boton_logout.clicked.connect(self._cerrar_sesion)
-        layout.addWidget(self.boton_logout, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.chats = QListWidget()
+        self.chats.setStyleSheet("""
+        QListWidget { border: none; color: #111; font-size: 14px; background: white; }
+        QListWidget::item { padding: 12px 8px; border-bottom: 1px solid #DDD; }
+        QListWidget::item:selected { background: #EAEAEA; }
+        """)
+        self.chats.itemClicked.connect(self._abrir_chat)
+        left_lay.addWidget(self.chats)
+        body.addWidget(left)
 
-    def set_nombre_usuario(self, nombre: str):
-        self.label_bienvenida.setText(f"¡Bienvenido, {nombre}!")
+        self.chat_placeholder = QLabel("(AQUÍ APARECE EL CHAT UNA VEZ SE HAGA CLICK EN EL)")
+        self.chat_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.chat_placeholder.setWordWrap(True)
+        self.chat_placeholder.setStyleSheet("""
+            QLabel { border: 3px solid #111; border-left: none; border-top: none;
+            background: white; color: #111; font-size: 24px; padding: 30px; }
+        """)
+        body.addWidget(self.chat_placeholder, 1)
 
-    def _ir_a_busqueda(self):
-        if self.on_ir_a_busqueda:
-            self.on_ir_a_busqueda()
+        root.addLayout(body, 1)
 
-    def _cerrar_sesion(self):
-        if self.on_logout:
-            self.on_logout()
+    def set_usuario(self, usuario_id):
+        self.usuario_id = usuario_id
+        self._cargar_chats()
+
+    def set_nombre_usuario(self, nombre):
+        self._cargar_chats()
+
+    def _cargar_chats(self):
+        self.chats.clear()
+        if not self.usuario_id:
+            return
+        try:
+            with get_session() as session:
+                resumenes = listar_conversaciones_usuario(session, self.usuario_id)
+            for r in resumenes:
+                item = QListWidgetItem(f"{r.otro_usuario_nombre}\n{r.ultimo_mensaje or ''}")
+                item.setData(Qt.ItemDataRole.UserRole, (r.otro_usuario_id, r.otro_usuario_nombre))
+                self.chats.addItem(item)
+        except Exception:
+            pass
+
+    def _abrir_chat(self, item):
+        data = item.data(Qt.ItemDataRole.UserRole)
+        if data and self.on_abrir_chat:
+            self.on_abrir_chat(*data)

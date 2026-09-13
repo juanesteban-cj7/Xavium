@@ -4,12 +4,10 @@ Definición de tablas (ORM) de la base de datos de Xavium.
 
 Notas de seguridad relevantes al modelo:
 - password_hash: nunca se guarda la contraseña en texto plano (bcrypt).
-- correo_hash: hash determinístico (HMAC-SHA256) del correo, usado
-  únicamente como índice único para poder buscar por correo sin
-  guardar el correo real en texto plano en ese campo.
-- correo_cifrado: correo institucional cifrado (Fernet/AES) para poder
-  mostrarlo/recuperarlo cuando la aplicación lo necesite (ej. reenviar
-  verificación), sin almacenarlo en texto plano.
+- correo: correo institucional legible y validado, usado para identificar
+    la cuenta.
+- correo_hash y correo_cifrado: columnas antiguas conservadas para migrar
+    instalaciones existentes; el código nuevo usa correo.
 - contenido_cifrado (mensajes): igual filosofía, cifrado en reposo.
 """
 
@@ -86,7 +84,9 @@ class Usuario(Base):
     nombre = Column(String(150), nullable=False)
     edad = Column(Integer, nullable=False)
 
-    # Ver docstring del módulo: por qué hay hash + cifrado por separado
+    correo = Column(String(255), unique=True, nullable=False, index=True)
+
+    # Columnas heredadas de la versión que ocultaba el correo.
     correo_hash = Column(String(64), unique=True, nullable=False, index=True)
     correo_cifrado = Column(Text, nullable=False)
 
@@ -130,6 +130,7 @@ class Conversacion(Base):
     id = Column(String(36), primary_key=True, default=_uuid)
     usuario1_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
     usuario2_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    grupo_id = Column(String(36), ForeignKey("grupos.id"), unique=True, nullable=True)
     fecha_creacion = Column(DateTime(), default=_utcnow, nullable=False)
 
     # Clave simétrica única de esta conversación (Fernet), a su vez
@@ -157,6 +158,58 @@ class Mensaje(Base):
     leido = Column(Boolean, default=False, nullable=False)
 
     conversacion = relationship("Conversacion", back_populates="mensajes")
+
+
+
+# --------------------------------------------------------------
+# Contactos y categorías
+# --------------------------------------------------------------
+class Contacto(Base):
+    __tablename__ = "contactos"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    contacto_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    fecha_agregado = Column(DateTime(), default=_utcnow, nullable=False)
+
+
+class CategoriaContacto(Base):
+    __tablename__ = "categorias_contacto"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    nombre = Column(String(100), nullable=False)
+    color = Column(String(20), nullable=False, default="#1E5AA8")
+    fecha_creacion = Column(DateTime(), default=_utcnow, nullable=False)
+
+
+class CategoriaContactoMiembro(Base):
+    __tablename__ = "categoria_contacto_miembros"
+
+    categoria_id = Column(
+        String(36), ForeignKey("categorias_contacto.id"), primary_key=True
+    )
+    contacto_id = Column(String(36), ForeignKey("contactos.id"), primary_key=True)
+
+
+# --------------------------------------------------------------
+# Grupos
+# --------------------------------------------------------------
+class Grupo(Base):
+    __tablename__ = "grupos"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    creador_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    nombre = Column(String(120), nullable=False)
+    fecha_creacion = Column(DateTime(), default=_utcnow, nullable=False)
+
+
+class GrupoMiembro(Base):
+    __tablename__ = "grupo_miembros"
+
+    grupo_id = Column(String(36), ForeignKey("grupos.id"), primary_key=True)
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), primary_key=True)
+    fecha_ingreso = Column(DateTime(), default=_utcnow, nullable=False)
 
 
 # --------------------------------------------------------------

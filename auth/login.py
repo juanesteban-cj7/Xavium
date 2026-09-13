@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 from config import settings
 from database.models import EstadoCuenta, Usuario
 from security.audit_log import EventoSeguridad, log_event
-from security.encryption_utils import hash_lookup
 from security.input_validation import ValidationError
 from auth.password_utils import verify_password
 from auth.session_manager import create_session
@@ -51,9 +50,9 @@ def login_user(
     problema fue "correo no existe" vs "contraseña incorrecta", para
     no facilitar enumeración de cuentas).
     """
-    correo_hash = hash_lookup(correo_institucional)
+    correo_normalizado = correo_institucional.strip().lower()
     usuario = (
-        session_db.query(Usuario).filter(Usuario.correo_hash == correo_hash).first()
+        session_db.query(Usuario).filter(Usuario.correo == correo_normalizado).first()
     )
 
     mensaje_generico = "Correo o contraseña incorrectos."
