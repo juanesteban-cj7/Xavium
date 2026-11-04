@@ -214,6 +214,7 @@ class RegisterView(QWidget):
                     password=password,
                     password_confirm=password_confirm,
                 )
+                session.commit()
                 # Se guardan los datos que necesitamos fuera de la sesión
                 # (la sesión de BD se cierra al salir del "with")
                 usuario_id = resultado.usuario_id
@@ -261,6 +262,7 @@ class RegisterView(QWidget):
             try:
                 with get_session() as session:
                     verify_email(session, correo, codigo)
+                    session.commit()
                 QMessageBox.information(
                     self,
                     "¡Listo!",
@@ -297,6 +299,7 @@ class RegisterView(QWidget):
             try:
                 with get_session() as session:
                     verify_email(session, correo, codigo.strip())
+                    session.commit()
                 QMessageBox.information(
                     self, "¡Listo!", "Tu correo fue verificado. Ya puedes iniciar sesión."
                 )

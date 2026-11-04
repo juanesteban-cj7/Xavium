@@ -20,6 +20,7 @@ def bootstrap_datos_iniciales() -> None:
     init_db()
     with get_session() as session:
         seed_catalog(session)
+        session.commit()
 
 
 def main():

@@ -132,6 +132,31 @@ def test_flujo_completo_registro_verificacion_login(session_db):
     assert resultado_login.token_sesion  # se creó una sesión
 
 
+def test_registro_y_verificacion_persisten_entre_sesiones(session_db):
+    resultado_registro = _registrar_usuario_valido(session_db)
+    session_db.commit()
+    session_db.close()
+
+    resultado_verificacion = None
+    engine = session_db.get_bind()
+    TestingSessionLocal = sessionmaker(bind=engine)
+    with TestingSessionLocal() as verification_session:
+        resultado_verificacion = verify_email(
+            verification_session,
+            "juan.perez@javeriana.edu.co",
+            resultado_registro.token_verificacion,
+        )
+        verification_session.commit()
+
+    with TestingSessionLocal() as confirmed_session:
+        usuario = confirmed_session.query(models.Usuario).filter_by(
+            correo="juan.perez@javeriana.edu.co"
+        ).one()
+
+    assert resultado_verificacion is True
+    assert usuario.estado_cuenta == models.EstadoCuenta.ACTIVO
+
+
 def test_login_falla_con_password_incorrecta(session_db):
     resultado_registro = _registrar_usuario_valido(session_db)
     verify_email(

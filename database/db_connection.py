@@ -1,9 +1,33 @@
 import os
+import sys
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+
+def _carpeta_persistente_datos() -> str:
+    """
+    Devuelve una carpeta donde guardar xavium.db que sobreviva entre
+    ejecuciones, tanto corriendo con 'python main.py' como empaquetado
+    con PyInstaller.
+
+    - Modo normal (python main.py): junto a este archivo (database/).
+    - Modo .exe (PyInstaller --onefile): __file__ apunta a una carpeta
+      temporal que se borra al cerrar el programa, así que usamos la
+      carpeta donde vive el .exe en su lugar (sys.executable), que sí
+      persiste entre ejecuciones.
+    """
+    if getattr(sys, "frozen", False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(__file__)
+
+    carpeta = os.path.join(base, "database")
+    os.makedirs(carpeta, exist_ok=True)
+    return carpeta
+
+
 # Configuración de la base de datos SQLite
-DB_PATH = os.path.join(os.path.dirname(__file__), "xavium.db")
+DB_PATH = os.path.join(_carpeta_persistente_datos(), "xavium.db")
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
