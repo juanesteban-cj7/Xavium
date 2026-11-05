@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton, QFrame, QDialog, QLineEdit, QDialogButtonBox, QMessageBox, QGraphicsDropShadowEffect, QTextEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton, QFrame, QDialog, QLineEdit, QDialogButtonBox, QMessageBox, QTextEdit
 from sqlalchemy.orm import joinedload
 
 from database.db_connection import get_session
@@ -7,6 +7,7 @@ from database.models import Usuario
 from chat.message_store import enviar_mensaje_grupo, obtener_mensajes_grupo, obtener_o_crear_conversacion_grupo
 from groups.group_manager import crear_grupo, listar_grupos, listar_miembros, agregar_miembro
 from gui.app_header import AppHeader
+from gui.theme import estilizar_boton, pulir_lista
 
 
 class GroupsView(QWidget):
@@ -23,7 +24,7 @@ class GroupsView(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(0)
+        root.setSpacing(14)
         self.header = AppHeader(on_inicio=on_inicio, on_contactos=on_contactos,
                                 on_grupos=on_grupos, on_buscar=on_buscar)
         if on_menu:
@@ -31,69 +32,53 @@ class GroupsView(QWidget):
         root.addWidget(self.header)
 
         body = QHBoxLayout()
-        body.setSpacing(0)
+        body.setSpacing(14)
 
         left = QFrame()
-        left.setFixedWidth(230)
-        left.setStyleSheet("QFrame { background:white; border:3px solid #111; border-top:none; }")
+        left.setObjectName("panel")
+        left.setFixedWidth(250)
         ll = QVBoxLayout(left)
         ll.setContentsMargins(0,0,0,0)
+        ll.setSpacing(0)
         top = QHBoxLayout()
-        top.setContentsMargins(8,8,8,8)
+        top.setContentsMargins(0,0,14,0)
         group_list_title = QLabel("Lista de grupos")
-        group_list_title.setStyleSheet("color:#111; font-size:14px; font-weight:bold;")
+        group_list_title.setObjectName("panelTitle")
         top.addWidget(group_list_title)
         top.addStretch()
         add = QPushButton("+")
         add.setFixedSize(38,38)
-        add.setStyleSheet("""
-            QPushButton {
-                background: #35A853;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 25px;
-                font-weight: bold;
-                text-align: center;
-                padding-bottom: 3px;
-            }
-            QPushButton:hover {
-                background: #2E9148;
-                border: 2px solid #237A39;
-            }
-            QPushButton:pressed {
-                background: #216E32;
-                padding-top: 2px;
-                padding-left: 2px;
-                padding-bottom: 0;
-            }
-        """)
-        shadow = QGraphicsDropShadowEffect(add)
-        shadow.setBlurRadius(12)
-        shadow.setOffset(0, 3)
-        shadow.setColor(Qt.GlobalColor.darkGray)
-        add.setGraphicsEffect(shadow)
+        estilizar_boton(add, "roundAdd")
         add.clicked.connect(self._crear_grupo)
         top.addWidget(add)
         ll.addLayout(top)
 
+        linea_izq = QFrame()
+        linea_izq.setObjectName("hline")
+        linea_izq.setFixedHeight(1)
+        ll.addWidget(linea_izq)
+
         self.groups = QListWidget()
-        self.groups.setStyleSheet("QListWidget{border:none;color:#111;background:white;} QListWidget::item{padding:13px;border-bottom:1px solid #DDD;} QListWidget::item:selected{background:#EEE;}")
+        self.groups.setObjectName("flatList")
         self.groups.itemClicked.connect(self._abrir_grupo)
+        pulir_lista(self.groups)
         ll.addWidget(self.groups)
         body.addWidget(left)
 
         center = QFrame()
-        center.setStyleSheet("QFrame { background:white; border:3px solid #111; border-left:none; border-top:none; }")
+        center.setObjectName("panel")
         cl = QVBoxLayout(center)
+        cl.setContentsMargins(22,18,22,18)
+        cl.setSpacing(12)
         title_row = QHBoxLayout()
         self.group_title = QLabel("Selecciona un grupo")
-        self.group_title.setStyleSheet("font-size:24px;font-weight:bold;color:#111;")
+        self.group_title.setObjectName("sectionTitle")
         title_row.addWidget(self.group_title)
         title_row.addStretch()
         add_member = QPushButton("+ Agregar miembro")
         add_member.setVisible(False)
-        add_member.setStyleSheet("QPushButton{background:#35A853;color:white;border:none;padding:8px;font-weight:bold;} QPushButton:hover{background:#2E9148;}")
+        add_member.setFixedHeight(40)
+        estilizar_boton(add_member, "primary")
         add_member.clicked.connect(self._agregar_miembro)
         self.add_member = add_member
         title_row.addWidget(add_member)
@@ -101,28 +86,39 @@ class GroupsView(QWidget):
         self.group_content = QTextEdit()
         self.group_content.setReadOnly(True)
         self.group_content.setPlaceholderText("Los mensajes del grupo aparecerán aquí.")
-        self.group_content.setStyleSheet("QTextEdit{background:white;border:2px solid #DDD;color:#111;padding:10px;font-size:14px;}")
         cl.addWidget(self.group_content,1)
         message_row = QHBoxLayout()
+        message_row.setSpacing(10)
         self.group_message_input = QLineEdit()
         self.group_message_input.setPlaceholderText("Escribe un mensaje para el grupo...")
-        self.group_message_input.setStyleSheet("QLineEdit{background:white;border:2px solid #111;padding:10px;color:#111;}")
+        self.group_message_input.setFixedHeight(46)
         self.group_message_input.returnPressed.connect(self._enviar_mensaje_grupo)
         message_row.addWidget(self.group_message_input,1)
         self.group_send_button = QPushButton("Enviar")
-        self.group_send_button.setStyleSheet("QPushButton{background:#1E5AA8;color:white;border:none;padding:10px 18px;font-weight:bold;} QPushButton:hover{background:#17477F;}")
+        self.group_send_button.setFixedHeight(46)
+        self.group_send_button.setMinimumWidth(110)
+        estilizar_boton(self.group_send_button, "primary")
         self.group_send_button.clicked.connect(self._enviar_mensaje_grupo)
         message_row.addWidget(self.group_send_button)
         cl.addLayout(message_row)
         body.addWidget(center,1)
 
         right = QFrame()
-        right.setFixedWidth(210)
-        right.setStyleSheet("QFrame { background:white; border:3px solid #111; border-left:none; border-top:none; }")
+        right.setObjectName("panel")
+        right.setFixedWidth(230)
         rl = QVBoxLayout(right)
-        rl.addWidget(QLabel("Lista de miembros"))
+        rl.setContentsMargins(0,0,0,0)
+        rl.setSpacing(0)
+        titulo_miembros = QLabel("Lista de miembros")
+        titulo_miembros.setObjectName("panelTitle")
+        rl.addWidget(titulo_miembros)
+        linea_der = QFrame()
+        linea_der.setObjectName("hline")
+        linea_der.setFixedHeight(1)
+        rl.addWidget(linea_der)
         self.members = QListWidget()
-        self.members.setStyleSheet("QListWidget{border:none;color:#111;background:white;} QListWidget::item{padding:10px;border-bottom:1px solid #DDD;}")
+        self.members.setObjectName("flatList")
+        pulir_lista(self.members)
         rl.addWidget(self.members,1)
         body.addWidget(right)
 

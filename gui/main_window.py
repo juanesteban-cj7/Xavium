@@ -13,14 +13,15 @@ from gui.chat_view import ChatView
 from gui.contacts_view import ContactsView
 from gui.groups_view import GroupsView
 from gui.menu_overlay import MenuOverlay
+from gui.theme import GradientStack, aplicar_tema
 
 class MainWindow(QMainWindow):
     SESSION_KEY="sesion/token"; SETTINGS=("Xavium","Xavium")
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Xavium"); self.setMinimumSize(500,560); self.setStyleSheet("background-color: #1E5AA8;")
+        self.setWindowTitle("Xavium"); self.setMinimumSize(500,560); aplicar_tema(self)
         self.usuario_id=None; self.usuario_nombre=None; self.token_sesion=None
-        self.stack=QStackedWidget(); self.setCentralWidget(self.stack)
+        self.stack=GradientStack(); self.setCentralWidget(self.stack)
 
         self.login_view=LoginView(on_ir_a_registro=self.mostrar_registro,on_login_exitoso=self.manejar_login_exitoso)
         self.register_view=RegisterView(on_ir_a_login=self.mostrar_login)
@@ -80,13 +81,13 @@ class MainWindow(QMainWindow):
         if self.menu_overlay.isVisible(): self.menu_overlay.hide()
         else:
             self.menu_overlay.adjustSize()
-            self.menu_overlay.move(16+12, 16+72)
+            self.menu_overlay.move(16+12, 16+72+8)
             self.menu_overlay.raise_(); self.menu_overlay.show()
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
         if self.menu_overlay.isVisible():
-            self.menu_overlay.move(28,88)
+            self.menu_overlay.move(28,96)
 
     def _restaurar_sesion(self):
         token_cifrado=QSettings(*self.SETTINGS).value(self.SESSION_KEY,"")

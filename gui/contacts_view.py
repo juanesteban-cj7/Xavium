@@ -15,6 +15,7 @@ from contacts.contact_manager import (
     establecer_contactos_categoria
 )
 from gui.app_header import AppHeader
+from gui.theme import estilizar_boton, pulir_lista
 
 
 class ContactsView(QWidget):
@@ -27,7 +28,7 @@ class ContactsView(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(0)
+        root.setSpacing(14)
         self.header = AppHeader(on_inicio=on_inicio, on_contactos=on_contactos,
                                 on_grupos=on_grupos, on_buscar=on_buscar)
         if on_menu:
@@ -35,60 +36,54 @@ class ContactsView(QWidget):
         root.addWidget(self.header)
 
         body = QHBoxLayout()
-        body.setSpacing(0)
+        body.setSpacing(14)
 
         self.sidebar = QFrame()
-        self.sidebar.setFixedWidth(230)
-        self.sidebar.setStyleSheet("QFrame { background:white; border:3px solid #111; border-top:none; }")
+        self.sidebar.setObjectName("panel")
+        self.sidebar.setFixedWidth(260)
         sl = QVBoxLayout(self.sidebar)
-        sl.setContentsMargins(0, 0, 0, 0)
+        sl.setContentsMargins(12, 12, 12, 12)
+        sl.setSpacing(10)
 
         add = QPushButton("＋  Añadir clasificación")
-        add.setStyleSheet("QPushButton { padding:12px 8px; border:none; border-bottom:3px solid #111; font-size:14px; color:#111; background:#FFF; } QPushButton:hover{background:#EEE;}")
+        add.setFixedHeight(44)
+        estilizar_boton(add, "primary")
         add.clicked.connect(self._crear_categoria)
         sl.addWidget(add)
 
         self.category_list = QListWidget()
-        self.category_list.setStyleSheet("""
-        QListWidget { border:none; color:#111; background:white; }
-        QListWidget::item { padding:10px 7px; border-bottom:2px solid #111; }
-        QListWidget::item:selected { background:#EEE; }
-        """)
+        self.category_list.setObjectName("categoryList")
         self.category_list.itemClicked.connect(self._seleccionar_categoria)
+        pulir_lista(self.category_list)
         sl.addWidget(self.category_list)
         body.addWidget(self.sidebar)
 
         right = QFrame()
-        right.setStyleSheet("QFrame { background:white; border:3px solid #111; border-left:none; border-top:none; }")
+        right.setObjectName("panel")
         rl = QVBoxLayout(right)
-        rl.setContentsMargins(22, 18, 22, 18)
+        rl.setContentsMargins(24, 20, 24, 20)
+        rl.setSpacing(8)
 
         top = QHBoxLayout()
         self.title = QLabel("Tus categorías")
-        self.title.setStyleSheet("font-size:22px; color:#111; font-weight:bold;")
+        self.title.setObjectName("sectionTitle")
         top.addWidget(self.title)
         top.addStretch()
         self.add_contact_btn = QPushButton("+ Agregar contacto")
-        self.add_contact_btn.setStyleSheet("""
-            QPushButton { background:#35A853; color:white; border:none; border-radius:5px; padding:9px 14px; font-weight:bold; }
-            QPushButton:hover { background:#2E9148; }
-        """)
+        self.add_contact_btn.setFixedHeight(42)
+        estilizar_boton(self.add_contact_btn, "primary")
         self.add_contact_btn.clicked.connect(self._agregar_contacto_dialog)
         top.addWidget(self.add_contact_btn)
         rl.addLayout(top)
 
         self.info = QLabel("Crea una clasificación en el panel izquierdo. Después podrás agregar contactos a ella.")
         self.info.setWordWrap(True)
-        self.info.setStyleSheet("color:#555; font-size:14px; padding:8px 0;")
+        self.info.setObjectName("info")
         rl.addWidget(self.info)
 
         self.contacts = QListWidget()
-        self.contacts.setStyleSheet("""
-        QListWidget { border:1px solid #CCC; color:#111; background:white; }
-        QListWidget::item { padding:13px; border-bottom:1px solid #DDD; }
-        QListWidget::item:selected { background:#EEE; }
-        """)
         self.contacts.itemDoubleClicked.connect(self._abrir_chat)
+        pulir_lista(self.contacts)
         rl.addWidget(self.contacts, 1)
         body.addWidget(right, 1)
 
@@ -109,20 +104,17 @@ class ContactsView(QWidget):
             item.setSizeHint(self._category_row_size())
             self.category_list.addItem(item)
 
-            row = QWidget()
-            row.setStyleSheet(f"QWidget{{background:white;border-left:6px solid {c['color']};}}")
+            row = QFrame()
+            row.setObjectName("catRow")
+            row.setStyleSheet(f"QFrame#catRow{{background:transparent;border:none;border-left:5px solid {c['color']};border-radius:3px;}}")
             row_lay = QHBoxLayout(row)
-            row_lay.setContentsMargins(8, 0, 4, 0)
+            row_lay.setContentsMargins(10, 0, 4, 0)
             label = QLabel(c["nombre"])
-            label.setStyleSheet("color:#111; font-size:14px;")
+            label.setStyleSheet("color:white; font-size:14px; font-weight:600; background:transparent; border:none;")
             row_lay.addWidget(label, 1)
             dots = QPushButton("⋮")
             dots.setFixedWidth(32)
-            dots.setStyleSheet("""
-                QPushButton { border:none; background:transparent; color:#111;
-                              font-size:22px; padding:0; }
-                QPushButton:hover { background:#DDD; }
-            """)
+            estilizar_boton(dots, "dots", brillo=False)
             dots.clicked.connect(lambda checked=False, cat=c: self._category_options(cat))
             row_lay.addWidget(dots)
             self.category_list.setItemWidget(item, row)

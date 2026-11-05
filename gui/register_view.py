@@ -5,6 +5,9 @@ Vista de registro de Xavium, conectada al backend real:
 - Registra al estudiante mediante auth/register.py
 - Solicita el código de verificación de correo y lo confirma
   mediante auth/register.py::verify_email
+
+Rediseño visual (glassmorfismo): solo cambia la presentación.
+Los métodos con lógica no fueron modificados.
 """
 
 from PyQt6.QtWidgets import (
@@ -17,6 +20,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMessageBox,
     QInputDialog,
+    QFrame,
 )
 from PyQt6.QtCore import Qt
 
@@ -25,46 +29,7 @@ from profile.profile_manager import list_facultades
 from security.input_validation import ValidationError
 from auth.register import register_user, send_verification_email, verify_email
 from gui.verification_code_dialog import mostrar_codigo_desarrollo
-
-INPUT_STYLE = """
-QLineEdit, QComboBox {
-    background-color: white;
-    border-radius: 6px;
-    padding: 10px;
-    font-size: 14px;
-    color: #1E1E1E;
-}
-"""
-
-PRIMARY_BUTTON_STYLE = """
-QPushButton {
-    background-color: white;
-    color: #1E5AA8;
-    font-size: 16px;
-    font-weight: bold;
-    border-radius: 8px;
-    padding: 10px;
-}
-QPushButton:hover {
-    background-color: #E6EEF8;
-}
-QPushButton:pressed {
-    background-color: #C9DAF0;
-}
-"""
-
-LINK_BUTTON_STYLE = """
-QPushButton {
-    background-color: transparent;
-    color: white;
-    font-size: 13px;
-    text-decoration: underline;
-    border: none;
-}
-QPushButton:hover {
-    color: #D6E4F5;
-}
-"""
+from gui.theme import estilizar_boton, sombra_suave, espaciar_letras
 
 TEXTO_PLACEHOLDER_FACULTAD = "Selecciona tu facultad"
 
@@ -81,52 +46,56 @@ class RegisterView(QWidget):
         super().__init__()
         self.on_ir_a_login = on_ir_a_login
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(12)
-        layout.setContentsMargins(60, 30, 60, 30)
-        self.setLayout(layout)
+        # Tarjeta de cristal centrada
+        raiz = QVBoxLayout(self)
+        raiz.setContentsMargins(24, 20, 24, 20)
+
+        tarjeta = QFrame()
+        tarjeta.setObjectName("card")
+        tarjeta.setFixedWidth(430)
+        sombra_suave(tarjeta)
+        raiz.addWidget(tarjeta, 0, Qt.AlignmentFlag.AlignCenter)
+
+        layout = QVBoxLayout(tarjeta)
+        layout.setSpacing(10)
+        layout.setContentsMargins(40, 28, 40, 26)
 
         # Título / marca
         titulo = QLabel("Xavium")
+        titulo.setObjectName("brandSmall")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo.setStyleSheet(
-            "color: white; font-size: 30px; font-weight: bold;"
-        )
+        espaciar_letras(titulo, 1.5)
         layout.addWidget(titulo)
 
         subtitulo = QLabel("Crea tu cuenta de estudiante")
+        subtitulo.setObjectName("subtitle")
         subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitulo.setStyleSheet("color: #D6E4F5; font-size: 13px;")
         layout.addWidget(subtitulo)
 
-        layout.addSpacing(8)
+        layout.addSpacing(6)
 
         # Nombre
         self.input_nombre = QLineEdit()
         self.input_nombre.setPlaceholderText("Nombre completo")
-        self.input_nombre.setStyleSheet(INPUT_STYLE)
-        self.input_nombre.setFixedHeight(40)
+        self.input_nombre.setFixedHeight(42)
         layout.addWidget(self.input_nombre)
 
         # Edad
         self.input_edad = QLineEdit()
         self.input_edad.setPlaceholderText("Edad")
-        self.input_edad.setStyleSheet(INPUT_STYLE)
-        self.input_edad.setFixedHeight(40)
+        self.input_edad.setFixedHeight(42)
         layout.addWidget(self.input_edad)
 
         # Correo institucional
         self.input_correo = QLineEdit()
         self.input_correo.setPlaceholderText("Correo institucional")
-        self.input_correo.setStyleSheet(INPUT_STYLE)
-        self.input_correo.setFixedHeight(40)
+        self.input_correo.setFixedHeight(42)
         layout.addWidget(self.input_correo)
 
         # Facultad (cargada dinámicamente desde la BD)
         self.combo_facultad = QComboBox()
-        self.combo_facultad.setStyleSheet(INPUT_STYLE)
-        self.combo_facultad.setFixedHeight(40)
+        self.combo_facultad.setFixedHeight(42)
+        self.combo_facultad.setCursor(Qt.CursorShape.PointingHandCursor)
         layout.addWidget(self.combo_facultad)
         self._cargar_facultades()
 
@@ -134,38 +103,36 @@ class RegisterView(QWidget):
         self.input_password = QLineEdit()
         self.input_password.setPlaceholderText("Contraseña")
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.input_password.setStyleSheet(INPUT_STYLE)
-        self.input_password.setFixedHeight(40)
+        self.input_password.setFixedHeight(42)
         layout.addWidget(self.input_password)
 
         # Confirmar contraseña
         self.input_password_confirm = QLineEdit()
         self.input_password_confirm.setPlaceholderText("Confirmar contraseña")
         self.input_password_confirm.setEchoMode(QLineEdit.EchoMode.Password)
-        self.input_password_confirm.setStyleSheet(INPUT_STYLE)
-        self.input_password_confirm.setFixedHeight(40)
+        self.input_password_confirm.setFixedHeight(42)
         layout.addWidget(self.input_password_confirm)
 
-        layout.addSpacing(6)
+        layout.addSpacing(4)
 
         # Botón registrarse
         self.boton_registrar = QPushButton("Registrarse")
-        self.boton_registrar.setFixedHeight(44)
-        self.boton_registrar.setStyleSheet(PRIMARY_BUTTON_STYLE)
+        self.boton_registrar.setFixedHeight(46)
+        estilizar_boton(self.boton_registrar, "primary")
         self.boton_registrar.clicked.connect(self.on_registrar_click)
         layout.addWidget(self.boton_registrar)
 
         # Enlace hacia login
         fila_login = QHBoxLayout()
         fila_login.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        fila_login.setSpacing(2)
 
         texto_pregunta = QLabel("¿Ya tienes cuenta?")
-        texto_pregunta.setStyleSheet("color: #D6E4F5; font-size: 13px;")
+        texto_pregunta.setObjectName("muted")
         fila_login.addWidget(texto_pregunta)
 
         self.boton_ir_login = QPushButton("Inicia sesión")
-        self.boton_ir_login.setStyleSheet(LINK_BUTTON_STYLE)
-        self.boton_ir_login.setCursor(Qt.CursorShape.PointingHandCursor)
+        estilizar_boton(self.boton_ir_login, "link", brillo=False)
         self.boton_ir_login.clicked.connect(self._ir_a_login)
         fila_login.addWidget(self.boton_ir_login)
 

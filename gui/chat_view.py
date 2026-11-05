@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QMe
 from chat.message_store import enviar_mensaje,marcar_mensajes_como_leidos,obtener_mensajes,obtener_o_crear_conversacion
 from database.db_connection import get_session
 from gui.app_header import AppHeader
+from gui.theme import estilizar_boton
 
 class ChatView(QWidget):
     def __init__(self,on_menu=None,on_inicio=None,on_contactos=None,on_grupos=None,on_buscar=None):
@@ -13,16 +14,17 @@ class ChatView(QWidget):
         if on_menu: header.menu_clicked.connect(on_menu)
         layout.addWidget(header)
         self.titulo=QLabel("Chat")
-        self.titulo.setStyleSheet("font-size:22px;font-weight:bold;color:#111;padding:15px 4px 8px;")
+        self.titulo.setObjectName("pageTitle")
         layout.addWidget(self.titulo)
         self.historial=QTextEdit(); self.historial.setReadOnly(True)
-        self.historial.setStyleSheet("QTextEdit{background:white;border:3px solid #111;color:#111;padding:10px;font-size:14px;}")
         layout.addWidget(self.historial,1)
+        layout.addSpacing(12)
         row=QHBoxLayout()
+        row.setSpacing(10)
         self.input_mensaje=QLineEdit(); self.input_mensaje.setPlaceholderText("Escribe un mensaje...")
-        self.input_mensaje.setStyleSheet("QLineEdit{background:white;border:2px solid #111;padding:10px;color:#111;}")
+        self.input_mensaje.setFixedHeight(48)
         self.input_mensaje.returnPressed.connect(self._enviar); row.addWidget(self.input_mensaje,1)
-        b=QPushButton("Enviar"); b.setStyleSheet("QPushButton{background:#1E5AA8;color:white;border:none;padding:10px 18px;font-weight:bold;}"); b.clicked.connect(self._enviar); row.addWidget(b)
+        b=QPushButton("Enviar"); b.setFixedHeight(48); b.setMinimumWidth(110); estilizar_boton(b,"primary"); b.clicked.connect(self._enviar); row.addWidget(b)
         layout.addLayout(row)
         self._timer=QTimer(self); self._timer.setInterval(1500); self._timer.timeout.connect(self._refrescar_mensajes)
 

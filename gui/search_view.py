@@ -3,9 +3,8 @@ from PyQt6.QtCore import Qt
 from database.db_connection import get_session
 from matching.search_engine import buscar_estudiantes, obtener_facultades_disponibles
 from gui.app_header import AppHeader
+from gui.theme import estilizar_boton, pulir_lista
 
-INPUT_STYLE = """QLineEdit, QComboBox { background:white; border:1px solid #999; padding:9px; font-size:14px; color:#111; }"""
-LIST_STYLE = """QListWidget { background:white; border:3px solid #111; color:#111; } QListWidget::item { padding:12px; border-bottom:1px solid #DDD; } QListWidget::item:selected { background:#EEE; color:#111; }"""
 TEXTO_TODAS_FACULTADES = "Todas las facultades"
 
 class SearchView(QWidget):
@@ -24,29 +23,34 @@ class SearchView(QWidget):
         layout.addWidget(header)
 
         title=QLabel("Buscar estudiantes")
-        title.setStyleSheet("font-size:24px;font-weight:bold;color:#111;padding:18px 4px 10px;")
+        title.setObjectName("pageTitle")
         layout.addWidget(title)
 
         filters=QHBoxLayout()
+        filters.setSpacing(10)
         self.input_texto=QLineEdit()
         self.input_texto.setPlaceholderText("Buscar por nombre...")
-        self.input_texto.setStyleSheet(INPUT_STYLE)
+        self.input_texto.setFixedHeight(46)
         self.input_texto.returnPressed.connect(self.ejecutar_busqueda)
         filters.addWidget(self.input_texto,2)
 
         self.combo_facultad=QComboBox()
-        self.combo_facultad.setStyleSheet(INPUT_STYLE)
+        self.combo_facultad.setFixedHeight(46)
+        self.combo_facultad.setCursor(Qt.CursorShape.PointingHandCursor)
         filters.addWidget(self.combo_facultad,2)
 
         self.boton_buscar=QPushButton("Buscar")
-        self.boton_buscar.setStyleSheet("QPushButton{background:#D9232E;color:white;border:none;padding:10px 18px;font-weight:bold;} QPushButton:hover{background:#B91D26;}")
+        self.boton_buscar.setFixedHeight(46)
+        self.boton_buscar.setMinimumWidth(130)
+        estilizar_boton(self.boton_buscar,"primary")
         self.boton_buscar.clicked.connect(self.ejecutar_busqueda)
         filters.addWidget(self.boton_buscar)
         layout.addLayout(filters)
+        layout.addSpacing(14)
 
         self.lista_resultados=QListWidget()
-        self.lista_resultados.setStyleSheet(LIST_STYLE)
         self.lista_resultados.itemDoubleClicked.connect(self._abrir_chat_seleccionado)
+        pulir_lista(self.lista_resultados)
         layout.addWidget(self.lista_resultados,1)
 
     def preparar(self, usuario_id):

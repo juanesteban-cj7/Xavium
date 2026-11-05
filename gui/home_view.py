@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QListWidg
 from database.db_connection import get_session
 from chat.message_store import listar_conversaciones_usuario
 from gui.app_header import AppHeader
+from gui.theme import pulir_lista
 
 
 class HomeView(QWidget):
@@ -15,7 +16,7 @@ class HomeView(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(0)
+        root.setSpacing(14)
 
         self.header = AppHeader(on_inicio=on_inicio, on_contactos=on_contactos,
                                 on_grupos=on_grupos, on_buscar=on_buscar)
@@ -24,35 +25,35 @@ class HomeView(QWidget):
         root.addWidget(self.header)
 
         body = QHBoxLayout()
-        body.setSpacing(0)
+        body.setSpacing(14)
 
         left = QFrame()
-        left.setStyleSheet("QFrame { border: 3px solid #111; border-top: none; background: white; }")
-        left.setFixedWidth(225)
+        left.setObjectName("panel")
+        left.setFixedWidth(270)
         left_lay = QVBoxLayout(left)
         left_lay.setContentsMargins(0, 0, 0, 0)
+        left_lay.setSpacing(0)
 
         title = QLabel("chats recientes")
-        title.setStyleSheet("font-size: 17px; padding: 10px; border-bottom: 3px solid #111; color: #111;")
+        title.setObjectName("panelTitle")
         left_lay.addWidget(title)
 
+        linea = QFrame()
+        linea.setObjectName("hline")
+        linea.setFixedHeight(1)
+        left_lay.addWidget(linea)
+
         self.chats = QListWidget()
-        self.chats.setStyleSheet("""
-        QListWidget { border: none; color: #111; font-size: 14px; background: white; }
-        QListWidget::item { padding: 12px 8px; border-bottom: 1px solid #DDD; }
-        QListWidget::item:selected { background: #EAEAEA; }
-        """)
+        self.chats.setObjectName("flatList")
         self.chats.itemClicked.connect(self._abrir_chat)
+        pulir_lista(self.chats)
         left_lay.addWidget(self.chats)
         body.addWidget(left)
 
         self.chat_placeholder = QLabel("(AQUÍ APARECE EL CHAT UNA VEZ SE HAGA CLICK EN EL)")
+        self.chat_placeholder.setObjectName("placeholderPanel")
         self.chat_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.chat_placeholder.setWordWrap(True)
-        self.chat_placeholder.setStyleSheet("""
-            QLabel { border: 3px solid #111; border-left: none; border-top: none;
-            background: white; color: #111; font-size: 24px; padding: 30px; }
-        """)
         body.addWidget(self.chat_placeholder, 1)
 
         root.addLayout(body, 1)
