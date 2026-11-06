@@ -1,0 +1,30 @@
+services:
+  xavium:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xavium
+    ports:
+      - "${XVNC_PORT:-6080}:6080"
+      - "${VNC_PORT:-5900}:5900"
+    environment:
+      INSTITUTIONAL_EMAIL_DOMAIN: "${INSTITUTIONAL_EMAIL_DOMAIN:-@javeriana.edu.co}"
+      PASSWORD_MIN_LENGTH: "${PASSWORD_MIN_LENGTH:-8}"
+      MAX_LOGIN_ATTEMPTS: "${MAX_LOGIN_ATTEMPTS:-5}"
+      LOGIN_LOCKOUT_MINUTES: "${LOGIN_LOCKOUT_MINUTES:-15}"
+      SESSION_EXPIRATION_HOURS: "${SESSION_EXPIRATION_HOURS:-12}"
+      EMAIL_VERIFICATION_TOKEN_EXPIRATION_HOURS: "${EMAIL_VERIFICATION_TOKEN_EXPIRATION_HOURS:-24}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-no-reply@javeriana.edu.co}"
+    volumes:
+      - xavium_database:/app/database
+      - xavium_secrets:/data
+    shm_size: 256mb
+    restart: unless-stopped
+
+volumes:
+  xavium_database:
+  xavium_secrets:

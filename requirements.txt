@@ -1,7 +1,5 @@
-PyQt6>=6.6 
-SQLAlchemy>=2.0 
-bcrypt>=4.1 
-cryptography>=42.0 
-python-dotenv>=1.0 
-email-validator>=2.1 
-pytest>=8.0 
+bcrypt==4.2.1
+cryptography==44.0.0
+PyQt6==6.8.0
+python-dotenv==1.0.1
+SQLAlchemy==2.0.36

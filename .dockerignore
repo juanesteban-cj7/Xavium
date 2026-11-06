@@ -1,0 +1,12 @@
+.git
+.gitignore
+.pytest_cache
+.venv
+venv
+__pycache__
+**/__pycache__
+*.pyc
+dist
+build
+database/*.db
+config/.env
